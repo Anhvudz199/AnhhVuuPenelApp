@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PROLOOK MASTER V3 - VUANH</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Share+Tech+Mono&display=swap');
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; outline: none; }
+        body { margin: 0; background: #000; color: white; font-family: 'Orbitron', sans-serif; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        #particle-canvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+        
+        /* LOGIN SCREEN */
+        #login-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); }
+        .avatar-frame { width: 110px; height: 110px; border-radius: 50%; border: 3px solid #00f2ff; box-shadow: 0 0 30px #00f2ff; margin-bottom: 15px; overflow: hidden; background: #111; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .avatar-frame:active { transform: scale(0.9); }
+        .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .input-key { width: 260px; padding: 15px; border-radius: 50px; background: rgba(255,255,255,0.1); border: 1px solid #333; color: #00f2ff; text-align: center; margin-top: 25px; font-family: 'Share Tech Mono'; font-weight: bold; }
+        
+        /* PHẦN HIỂN THỊ HẠN SỬ DỤNG */
+        #hsd-view { margin-top: 10px; font-size: 10px; color: #4cd137; font-family: 'Share Tech Mono'; height: 15px; letter-spacing: 1px; }
+
+        .btn-blue { width: 260px; padding: 16px; background: #3498db; border: none; color: white; border-radius: 12px; font-weight: 900; margin-top: 10px; box-shadow: 0 4px #2980b9; cursor: pointer; }
+        .btn-blue:active { transform: translateY(2px); box-shadow: 0 2px #2980b9; }
+
+        /* MENU PANEL */
+        #main-panel { display: none; width: 340px; background: rgba(10, 10, 15, 0.85); border-radius: 25px; border: 1px solid rgba(0, 242, 255, 0.3); padding: 25px; backdrop-filter: blur(10px); z-index: 100; text-align: center; }
+        .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s; }
+        .sw-box { width: 45px; height: 23px; background: #333; border-radius: 20px; position: relative; transition: 0.3s; }
+        .sw-box::after { content: ""; position: absolute; width: 17px; height: 17px; background: #fff; border-radius: 50%; top: 3px; left: 4px; transition: 0.3s; }
+        .active .sw-box { background: #4cd137; box-shadow: 0 0 10px #4cd137; }
+        .active .sw-box::after { transform: translateX(20px); }
+
+        #loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 50px; height: 50px; border: 5px solid rgba(0,242,255,0.1); border-top: 5px solid #00f2ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        #version-dialog { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
+        .v-box { width: 280px; background: #111; padding: 25px; border-radius: 20px; border: 1px solid #00f2ff; text-align: center; }
+        
+        #terminal-view { display: none; position: fixed; inset: 0; background: #000; z-index: 4000; padding: 40px; font-family: 'Share Tech Mono'; color: #4cd137; }
+
+        .copyright { font-size: 11px; color: #00f2ff; margin-top: 5px; letter-spacing: 1px; }
+        .logout-text { color: white; font-size: 10px; margin-top: 25px; opacity: 0.6; cursor: pointer; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+
+<div id="login-screen">
+    <div class="avatar-frame" id="admin-trigger"><img src="https://i.ibb.co/hFSN4tMT/IMG-0215.jpg" alt="avatar"></div>
+    <h2 style="letter-spacing: 3px; margin: 0;">PROLOOK MASTER V3</h2>
+    <div class="copyright">Admin: VuAnh</div>
+    
+    <input type="text" id="key-in" class="input-key" placeholder="ENTER KEY V5" oninput="checkHSD()">
+    <div id="hsd-view">CHƯA NHẬP KEY</div>
+
+    <button class="btn-blue" onclick="initAudioAndLogin()">LOGIN & CHECKKEY</button>
+    <div class="copyright" style="font-size: 9px; opacity: 0.7; margin-top: 15px;">Vui Lòng Lh Zalo: 0363411065 Để Lấy KEY</div>
+</div>
+
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    <p style="color:#00f2ff; margin-top:20px; font-size:12px;">CONNECTING...</p>
+</div>
+
+<div id="main-panel">
+    <div class="avatar-frame" style="width:70px; height:70px; margin: 0 auto 10px; border-width:2px;"><img src="https://i.ibb.co/hFSN4tMT/IMG-0215.jpg" alt="avatar"></div>
+    <div style="font-size: 15px; font-weight: 900;">PROLOOK MASTER V3</div>
+    <div class="copyright" style="font-size: 10px;">BY VuAnh ZALO 0363411065</div>
+    <div style="font-size: 10px; color: #4cd137; margin-bottom: 15px;">STATUS: ACTIVE</div>
+
+    <div class="menu-item" onclick="toggleMode(this)"><span>🎯 AIM LOCK VIP</span> <div class="sw-box"></div></div>
+    <div class="menu-item" onclick="toggleMode(this)"><span>🔋 NHẸ TÂM 100%</span> <div class="sw-box"></div></div>
+    <div class="menu-item" onclick="toggleMode(this)"><span>🚀 BOST RAM</span> <div class="sw-box"></div></div>
+    <div class="menu-item" onclick="toggleMode(this)"><span>⚙️ FIX RUNG 2026</span> <div class="sw-box"></div></div>
+
+    <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn-blue" style="flex:1; margin-top:0;" onclick="openVers()">ON</button>
+        <button class="btn-blue" style="flex:1; margin-top:0; background:#ff4757; box-shadow:0 4px #c0392b;" onclick="disableAll()">OFF</button>
+    </div>
+    <div class="logout-text" onclick="location.reload()">Đăng Xuất</div>
+</div>
+
+<div id="version-dialog">
+    <div class="v-box">
+        <h4 style="margin: 0 0 15px; color:#00f2ff;">SELECT VERSION</h4>
+        <button onclick="runInject('FF NORMAL')" style="width:100%; padding:15px; margin:10px 0; background:#e67e22; border:none; border-radius:12px; color:white; font-weight:900;">FF THƯỜNG</button>
+        <button onclick="runInject('FF MAX')" style="width:100%; padding:15px; margin:10px 0; background:#9b59b6; border:none; border-radius:12px; color:white; font-weight:900;">FF MAX</button>
+    </div>
+</div>
+
+<div id="terminal-view"><div id="log-out"></div></div>
+
+<script>
+    const ADMIN_PASS = "vudao2612009"; 
+
+    // HÀM TẠO KEY
+    function getKeys() {
+        const d = new Date();
+        const date = d.getDate(), month = d.getMonth() + 1, year = d.getFullYear();
+        const start = new Date(year, 0, 1);
+        const week = Math.ceil((((d - start) / 86400000) + 1) / 7);
+
+        return {
+            ngay:  "VA-" + ((date + month) * 432),
+            tuan:  "VAW-" + ((week + 10) * 77),
+            thang: "VAT-" + ((month + 8) * 99),
+            nam:   "VAY-2026-PRO",
+            boss:  "VUADM"
+        };
+    }
+
+    // --- CHỨC NĂNG MỚI: CHECK HẠN SỬ DỤNG ---
+    function checkHSD() {
+        const input = document.getElementById('key-in').value.trim().toUpperCase();
+        const hsdTxt = document.getElementById('hsd-view');
+        const k = getKeys();
+
+        if (input === "") {
+            hsdTxt.innerText = "CHƯA NHẬP KEY";
+            hsdTxt.style.color = "#888";
+        } else if (input === k.ngay) {
+            hsdTxt.innerText = "HẠN SỬ DỤNG: 24 GIỜ (NGÀY)";
+            hsdTxt.style.color = "#4cd137";
+        } else if (input === k.tuan) {
+            hsdTxt.innerText = "HẠN SỬ DỤNG: 7 NGÀY (TUẦN)";
+            hsdTxt.style.color = "#4cd137";
+        } else if (input === k.thang) {
+            hsdTxt.innerText = "HẠN SỬ DỤNG: 30 NGÀY (THÁNG)";
+            hsdTxt.style.color = "#4cd137";
+        } else if (input === k.nam || input === k.boss) {
+            hsdTxt.innerText = "HẠN SỬ DỤNG: VĨNH VIỄN (NĂM)";
+            hsdTxt.style.color = "#00f2ff";
+        } else {
+            hsdTxt.innerText = "KEY KHÔNG HỢP LỆ!";
+            hsdTxt.style.color = "#ff4757";
+        }
+    }
+
+    // --- LOGIN ---
+    function doLogin() {
+        const keyInput = document.getElementById('key-in').value.trim().toUpperCase();
+        const k = getKeys();
+
+        if([k.ngay, k.tuan, k.thang, k.nam, k.boss].includes(keyInput)) {
+            playSound('success');
+            document.getElementById('login-screen').style.display='none';
+            document.getElementById('loading-overlay').style.display='flex';
+            setTimeout(() => {
+                document.getElementById('loading-overlay').style.display='none';
+                document.getElementById('main-panel').style.display='block';
+            }, 2000);
+        } else { 
+            playSound('error');
+            alert("SAI KEY HOẶC HẾT HẠN!"); 
+        }
+    }
+
+    // --- ADMIN ---
+    const trigger = document.getElementById('admin-trigger');
+    let timer;
+    trigger.addEventListener('touchstart', () => {
+        timer = setTimeout(() => {
+            let p = prompt("NHẬP MÃ ADMIN:");
+            if(p === ADMIN_PASS) {
+                const k = getKeys();
+                alert(`DANH SÁCH KEY:\n\n1. NGÀY: ${k.ngay}\n2. TUẦN: ${k.tuan}\n3. THÁNG: ${k.thang}\n4. NĂM: ${k.nam}`);
+            }
+        }, 3000);
+    });
+    trigger.addEventListener('touchend', () => clearTimeout(timer));
+
+    // --- AUDIO & MODS (GIỮ NGUYÊN) ---
+    const soundFiles = {
+        click: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+        success: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3',
+        error: 'https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3',
+        switch: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'
+    };
+    const audioCache = {};
+    for (let key in soundFiles) { audioCache[key] = new Audio(soundFiles[key]); }
+
+    function playSound(name) { if (audioCache[name]) { audioCache[name].currentTime = 0; audioCache[name].play().catch(e => {}); } }
+    function initAudioAndLogin() { doLogin(); }
+
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let pts = [];
+    function init() {
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        for(let i=0; i<80; i++) pts.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*2.5, v: Math.random()*0.5 + 0.2, o: Math.random() });
+    }
+    function anim() {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        pts.forEach(p => { ctx.fillStyle = `rgba(0, 242, 255, ${p.o})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill(); p.y -= p.v; if(p.y < 0) p.y = canvas.height; });
+        requestAnimationFrame(anim);
+    }
+    init(); anim();
+
+    function toggleMode(el) { el.classList.toggle('active'); if(el.classList.contains('active')) playSound('switch'); else playSound('click'); }
+    function disableAll() { playSound('error'); document.querySelectorAll('.menu-item.active').forEach(i => i.classList.remove('active')); alert('All modes Disabled!'); }
+    function openVers() { playSound('click'); document.getElementById('version-dialog').style.display='flex'; }
+    function runInject(g) {
+        playSound('success');
+        document.getElementById('version-dialog').style.display='none';
+        document.getElementById('terminal-view').style.display='block';
+        const out = document.getElementById('log-out'); out.innerHTML = "";
+        const lines = [`> Target: ${g}`, "> Injecting script...", "> Bypassing...", "> SUCCESS!"];
+        let i=0;
+        const t = setInterval(() => { if(i<lines.length) { out.innerHTML += lines[i]+"<br><br>"; i++; } else { clearInterval(t); setTimeout(() => { document.getElementById('terminal-view').style.display='none'; }, 800); } }, 500);
+    }
+</script>
+</body>
+</html>
